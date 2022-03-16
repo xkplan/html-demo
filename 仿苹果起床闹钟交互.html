@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>仿苹果起床闹钟交互</title>
+
+    <style type="text/css">
+        * body {
+            margin: 0;
+            padding: 0;
+        }
+
+        .iphone-clock {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            position: relative;
+            user-select: none;
+        }
+
+        .slider {
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .slider-endpoint {
+            border-radius: 50%;
+            background-size: contain;
+            position: absolute;
+            transform: translate(-50%, -50%);
+            box-sizing: border-box;
+        }
+
+        .inner-border {
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        .inner-dial {
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        .outer-dial {
+            position: absolute;
+        }
+
+        .outer-dial-item {
+            box-sizing: border-box;
+            background-color: #0000006b;
+            position: absolute;
+        }
+    </style>
+</head>
+
+<body>
+<div style="background-color: white; height: 300px; width: 300px; display: flex; align-items: center; justify-content: center;">
+    <div class="iphone-clock">
+        <div class="slider"></div>
+        <img class="slider-endpoint slider-lower" src="bell_light.png" alt=""/>
+        <img class="slider-endpoint slider-upper" src="bed_light.png" alt=""/>
+        <div class="inner-border"></div>
+        <div class="inner-dial"></div>
+        <div class="outer-dial"></div>
+    </div>
+</div>
+<script type="text/javascript">
+    function getElementRelativePosition(ele) {
+        // x
+        let actualLeft = ele.offsetLeft;
+        let current = ele.offsetParent;
+        while (current !== null) {
+            actualLeft += current.offsetLeft;
+            current = current.offsetParent;
+        }
+        // y
+        let actualTop = ele.offsetTop;
+        current = ele.offsetParent;
+        while (current !== null) {
+            actualTop += (current.offsetTop + current.clientTop);
+            current = current.offsetParent;
+        }
+        return {x: actualLeft, y: actualTop}
+    }
+
+    function getIphoneClockPosition() {
+        return getElementRelativePosition(document.getElementsByClassName("iphone-clock")[0]);
+    }
+</script>
+<script type="text/javascript">
+    const themeDark = {
+        // 表盘主色
+        base: "#2c2c2e",
+        // 滑道
+        slideWay: "black",
+        // 滑块端点图标
+        sliderLowerIcon: "bell_light.png",
+        sliderUpperIcon: "bed_light.png",
+        // 中心表盘背景
+        dialImg: "dial_dark.png",
+        // 滑块警告色
+        warning: {
+            base: "#d58b1f",
+            sliderLowerIcon: "bell_white.png",
+            sliderUpperIcon: "bed_white.png"
+        },
+    };
+    const themeLight = {
+        // 表盘主色
+        base: "white",
+        // 滑道
+        slideWay: "#dbdbe0",
+        // 滑块端点图标
+        sliderLowerIcon: "bell_dark.png",
+        sliderUpperIcon: "bed_dark.png",
+        // 中心表盘背景
+        dialImg: "dial_light.png",
+        // 滑块警告色
+        warning: {
+            base: "#d58b1f",
+            sliderLowerIcon: "bell_white.png",
+            sliderUpperIcon: "bed_white.png"
+        },
+    };
+
+    // 主题
+    // const theme = themeDark;
+    const theme = themeLight;
+    // 角度参数（base 开始，逆时针拓展角度 angle） [base, angle]
+    const angle = [0, 90];
+    // 绘制参数 [最大半径 r, 滑块粗细 t, 滑块外边框 b]
+    // 小于 8 小时 #d58b1f
+    const params = [100, 24, 5];
+</script>
+<script type="text/javascript">
+    // 初始化 DOM 元素
+    function initEle() {
+        document.getElementsByClassName("iphone-clock")[0].style.height = `${(params[0] + params[2]) * 2}px`;
+        document.getElementsByClassName("iphone-clock")[0].style.width = `${(params[0] + params[2]) * 2}px`;
+        document.getElementsByClassName("iphone-clock")[0].style.backgroundColor = theme.slideWay;
+
+        document.getElementsByClassName("slider")[0].style.height = `${params[0] * 2}px`;
+        document.getElementsByClassName("slider")[0].style.width = `${params[0] * 2}px`;
+
+        document.getElementsByClassName("slider-endpoint")[0].style.padding = `${params[1] / 5}px`;
+        document.getElementsByClassName("slider-endpoint")[1].style.padding = `${params[1] / 5}px`;
+
+        document.getElementsByClassName("slider-lower")[0].style.height = `${params[1]}px`;
+        document.getElementsByClassName("slider-lower")[0].style.width = `${params[1]}px`;
+
+        document.getElementsByClassName("slider-upper")[0].style.height = `${params[1]}px`;
+        document.getElementsByClassName("slider-upper")[0].style.width = `${params[1]}px`;
+
+        document.getElementsByClassName("inner-border")[0].style.height = `${(params[0] - params[1]) * 2}px`;
+        document.getElementsByClassName("inner-border")[0].style.width = `${(params[0] - params[1]) * 2}px`;
+        document.getElementsByClassName("inner-border")[0].style.backgroundColor = theme.slideWay;
+
+        document.getElementsByClassName("inner-dial")[0].style.height = `${(params[0] - params[1] - params[2]) * 2}px`;
+        document.getElementsByClassName("inner-dial")[0].style.width = `${(params[0] - params[1] - params[2]) * 2}px`;
+        document.getElementsByClassName("inner-dial")[0].style.backgroundImage = `url(${theme.dialImg})`;
+        document.getElementsByClassName("inner-dial")[0].style.backgroundSize = "contain";
+
+        // 表盘滑块刻度盘
+        let outerDialEle = document.getElementsByClassName("outer-dial")[0];
+        outerDialEle.style.height = `${params[0] * 2}px`;
+        outerDialEle.style.width = `${params[0] * 2}px`;
+        for (let deg = 0; deg < 360; deg += 6) {
+            let outerDialItemEle = document.createElement("div");
+            outerDialItemEle.classList.add("outer-dial-item");
+            outerDialItemEle.setAttribute("deg", `${deg}`);
+            outerDialItemEle.style.transform = `translate(-50%, -50%) rotate(${-deg}deg)`;
+            outerDialItemEle.style.width = `${params[1] - 2 * params[2]}px`;
+            outerDialItemEle.style.height = `${((params[2] / 2) | 1) - 1}px`;
+            outerDialItemEle.style.borderRadius = `${(((params[2] / 2) | 1) - 1) / 2}px`;
+            outerDialItemEle.style.left = `${params[0] + (params[0] - params[1] / 2) * Math.cos(deg / 360 * 2 * Math.PI)}px`;
+            outerDialItemEle.style.top = `${params[0] - (params[0] - params[1] / 2) * Math.sin(deg / 360 * 2 * Math.PI)}px`;
+            outerDialEle.appendChild(outerDialItemEle);
+        }
+    }
+
+    /*
+     绘制闹钟
+    */
+    function drawClock() {
+        // 定义驻点
+        let points = {
+            0: "100% 50%",
+            45: `100% 0%`,
+            90: `50% 0%`,
+            135: `0% 0%`,
+            180: `0% 50%`,
+            225: `0% 100%`,
+            270: `50% 100%`,
+            315: `100% 100%`,
+        };
+        let clipPoints = [];
+        for (let pointAngle = 0; pointAngle <= 720; pointAngle += 45) {
+            if (angle[0] <= pointAngle && angle[0] + angle[1] >= pointAngle) {
+                clipPoints.push(points[pointAngle % 360]);
+                if (clipPoints.length >= 8) break;  // 一圈 360 跳出
+            } else if (clipPoints.length > 0) {
+                break;  // 未在区间内跳出
+            }
+        }
+        let clipStartPoint = {
+            x: params[0] + 100 * params[0] * Math.cos(angle[0] / 360 * 2 * Math.PI),
+            y: params[0] - 100 * params[0] * Math.sin(angle[0] / 360 * 2 * Math.PI)
+        }
+        let clipEndPoint = {
+            x: params[0] + 100 * params[0] * Math.cos((angle[0] + angle[1]) / 360 * 2 * Math.PI),
+            y: params[0] - 100 * params[0] * Math.sin((angle[0] + angle[1]) / 360 * 2 * Math.PI)
+        };
+        clipPoints = [
+            `${clipStartPoint.x}px ${clipStartPoint.y}px`,
+            ...clipPoints,
+            `${clipEndPoint.x}px ${clipEndPoint.y}px`,
+            "50% 50%",
+            `${clipStartPoint.x}px ${clipStartPoint.y}px`,
+        ].join(", ");
+        document.getElementsByClassName("slider")[0].style.clipPath = `polygon(${clipPoints})`;
+
+        // 计算绘制端点
+        let downEle = document.getElementsByClassName("slider-lower")[0];
+        downEle.style.left = `${params[0] + params[2] + Math.cos(angle[0] / 360 * 2 * Math.PI) * (params[0] - params[1] / 2)}px`;
+        downEle.style.top = `${params[0] + params[2] - Math.sin(angle[0] / 360 * 2 * Math.PI) * (params[0] - params[1] / 2)}px`;
+        let upEle = document.getElementsByClassName("slider-upper")[0];
+        upEle.style.left = `${params[0] + params[2] + Math.cos((angle[0] + angle[1]) / 360 * 2 * Math.PI) * (params[0] - params[1] / 2)}px`;
+        upEle.style.top = `${params[0] + params[2] - Math.sin((angle[0] + angle[1]) / 360 * 2 * Math.PI) * (params[0] - params[1] / 2)}px`;
+
+        // 设置滑块颜色
+        let color = angle[1] < 120 ? theme.warning.base : theme.base;
+        document.getElementsByClassName("slider")[0].style.backgroundColor = color;
+        document.getElementsByClassName("slider-lower")[0].style.backgroundColor = color;
+        document.getElementsByClassName("slider-upper")[0].style.backgroundColor = color;
+        let icon = angle[1] < 120 ? theme.warning.sliderLowerIcon : theme.sliderLowerIcon;
+        document.getElementsByClassName("slider-lower")[0].setAttribute("src", icon);
+        icon = angle[1] < 120 ? theme.warning.sliderUpperIcon : theme.sliderUpperIcon;
+        document.getElementsByClassName("slider-upper")[0].setAttribute("src", icon);
+
+        // 设置刻度显示
+        let outerDialItems = document.getElementsByClassName("outer-dial-item");
+        document.getElementsByClassName("outer-dial")[0].style.clipPath = `polygon(${clipPoints})`;
+        for (let item of outerDialItems) {
+            let deg = Number(item.getAttribute("deg"));
+            if ((deg <= angle[0] + 6 || deg >= angle[0] + angle[1] - 6) &&
+                ((deg + 360 <= angle[0] + 6 || deg + 360 >= angle[0] + angle[1] - 6))) {
+                item.style.display = "none";
+            } else {
+                item.style.display = "unset";
+            }
+        }
+    }
+
+    /*
+     设置滑块位置
+    */
+    function moveAngle(num) {
+        if (Math.abs(num) > 45) return;
+        angle[0] -= -num;
+        if (angle[0] > 360) angle[0] %= 360;
+        if (angle[0] < 0) angle[0] += 360;
+    }
+
+    /*
+     扩展高点值
+    */
+    function extAngleUpper(num) {
+        if (Math.abs(num) > 45) return;
+        if (num < 0 && num < -180) num += 360;
+        angle[1] += num;
+        if (angle[1] > 288) {
+            angle[0] += angle[1] - 288;
+            angle[1] = 288;
+        }
+        if (angle[1] < 15) {
+            angle[0] -= 15 - angle[1];
+            angle[1] = 15;
+        }
+        if (angle[0] > 360) angle[0] %= 360;
+        if (angle[0] < 0) angle[0] += 360;
+    }
+
+    /*
+     扩展低点值
+    */
+    function extAngleLower(num) {
+        if (Math.abs(num) > 45) return;
+        if (num < 0 && num < -180) num += 360;
+        angle[0] -= -num;
+        angle[1] += -num;
+        if (angle[1] > 288) angle[1] = 288;
+        if (angle[1] < 15) angle[1] = 15;
+        if (angle[0] > 360) angle[0] %= 360;
+        if (angle[0] < 0) angle[0] += 360;
+    }
+
+    /*
+     计算交互事件产生的夹角度数（0-720）
+     */
+    function calculateEventAngle(e) {
+        let offset = getIphoneClockPosition();
+        let ex = ((e instanceof TouchEvent) ? e.touches[0].clientX : e.clientX) - offset.x;
+        let ey = ((e instanceof TouchEvent) ? e.touches[0].clientY : e.clientY) - offset.y;
+        let atan2 = Math.atan2(params[0] - ey, ex - params[0]) / Math.PI * 180;
+        if (atan2 < 0) return 360 + atan2;
+        return atan2;
+    }
+
+    /*
+     判断拖动事件起点是否在滑块内
+     */
+    function isInSliderArea(e) {
+        let offset = getIphoneClockPosition();
+        let ex = ((e instanceof TouchEvent) ? e.touches[0].clientX : e.clientX) - offset.x;
+        let ey = ((e instanceof TouchEvent) ? e.touches[0].clientY : e.clientY) - offset.y;
+        let mp = Math.pow(ey - params[0], 2) + Math.pow(ex - params[0], 2);
+        if (mp > Math.pow(params[0], 2) || mp < Math.pow(params[0] - params[1], 2)) return false;
+        let ea = calculateEventAngle(e);
+        return !((ea < angle[0] || ea > angle[0] + angle[1]) && ((ea + 360 < angle[0] || ea + 360 > angle[0] + angle[1])));
+    }
+
+    let sliderTouchStarted = false;
+    let sliderTouchStartAngle = 0;
+    let sliderLowerTouchStarted = false;
+    let sliderLowerTouchStartAngle = 0;
+    let sliderUpperTouchStarted = false;
+    let sliderUpperTouchStartAngle = 0;
+
+    window.onload = function () {
+        initEle();
+        drawClock();
+
+        // 滑块整体滑动
+        // 滑块整体滑动-按下
+        let handler = e => {
+            e.stopPropagation();
+            if (sliderTouchStarted) return;
+            if (!isInSliderArea(e)) return; // 不在圆内
+            sliderTouchStarted = true;
+            sliderTouchStartAngle = calculateEventAngle(e);
+        };
+        document.getElementsByClassName("iphone-clock")[0].addEventListener("touchstart", handler);
+        document.getElementsByClassName("iphone-clock")[0].addEventListener("mousedown", handler);
+        // 滑块整体滑动-拖动
+        handler = e => {
+            e.stopPropagation();
+            if (!sliderTouchStarted) return;
+            let ea = calculateEventAngle(e);
+            moveAngle(ea - sliderTouchStartAngle);
+            sliderTouchStartAngle = ea;
+            drawClock();
+        };
+        document.getElementsByClassName("iphone-clock")[0].addEventListener("touchmove", handler);
+        document.getElementsByClassName("iphone-clock")[0].addEventListener("mousemove", handler);
+        // 滑块整体滑动-取消
+        handler = e => {
+            e.stopPropagation();
+            if (!sliderTouchStarted) return;
+            sliderTouchStarted = false;
+        };
+        document.getElementsByClassName("iphone-clock")[0].addEventListener("touchend", handler);
+        document.getElementsByClassName("iphone-clock")[0].addEventListener("touchcancel", handler);
+        document.getElementsByClassName("iphone-clock")[0].addEventListener("mouseup", handler);
+        // 滑块端点滑动
+        // 滑块上界端点滑动-按下
+        handler = e => {
+            e.stopPropagation();
+            if (sliderTouchStarted || sliderLowerTouchStarted || sliderUpperTouchStarted) return;
+            sliderUpperTouchStarted = true;
+            sliderUpperTouchStartAngle = calculateEventAngle(e);
+        };
+        document.getElementsByClassName("slider-upper")[0].addEventListener("touchstart", handler);
+        document.getElementsByClassName("slider-upper")[0].addEventListener("mousedown", handler);
+        // 滑块上界端点滑动-拖动
+        handler = e => {
+            e.stopPropagation();
+            if (!sliderUpperTouchStarted) return;
+            let ea = calculateEventAngle(e);
+            extAngleUpper(ea - sliderUpperTouchStartAngle);
+            sliderUpperTouchStartAngle = ea;
+            drawClock();
+        };
+        document.getElementsByClassName("slider-upper")[0].addEventListener("touchmove", handler);
+        document.getElementsByClassName("slider-upper")[0].addEventListener("mousemove", handler);
+        // 滑块上界端点滑动-取消
+        handler = e => {
+            e.stopPropagation();
+            if (!sliderUpperTouchStarted) return;
+            sliderUpperTouchStarted = false;
+        }
+        document.getElementsByClassName("slider-upper")[0].addEventListener("touchend", handler);
+        document.getElementsByClassName("slider-upper")[0].addEventListener("touchcancel", handler);
+        document.getElementsByClassName("slider-upper")[0].addEventListener("mouseup", handler);
+        // 滑块下界端点滑动-按下
+        handler = e => {
+            e.stopPropagation();
+            if (sliderTouchStarted || sliderLowerTouchStarted || sliderUpperTouchStarted) return;
+            sliderLowerTouchStarted = true;
+            sliderLowerTouchStartAngle = calculateEventAngle(e);
+        };
+        document.getElementsByClassName("slider-lower")[0].addEventListener("touchstart", handler);
+        document.getElementsByClassName("slider-lower")[0].addEventListener("mousedown", handler);
+        // 滑块下界端点滑动-拖动
+        handler = e => {
+            e.stopPropagation();
+            if (!sliderLowerTouchStarted) return;
+            let ea = calculateEventAngle(e);
+            extAngleLower(ea - sliderLowerTouchStartAngle);
+            sliderLowerTouchStartAngle = ea;
+            drawClock();
+        };
+        document.getElementsByClassName("slider-lower")[0].addEventListener("touchmove", handler);
+        document.getElementsByClassName("slider-lower")[0].addEventListener("mousemove", handler);
+        // 滑块下界端点滑动-取消
+        handler = e => {
+            e.stopPropagation();
+            if (!sliderLowerTouchStarted) return;
+            sliderLowerTouchStarted = false;
+        };
+        document.getElementsByClassName("slider-lower")[0].addEventListener("touchend", handler);
+        document.getElementsByClassName("slider-lower")[0].addEventListener("touchcancel", handler);
+        document.getElementsByClassName("slider-lower")[0].addEventListener("mouseup", handler);
+    }
+</script>
+</body>
+</html>
